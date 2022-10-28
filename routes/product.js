@@ -1,22 +1,74 @@
 const Product = require('../models/product');
 const {verifyToken, verifyTokenAndAuth, verifyTokenAdmin} = require("../routes/verifyToken");
+const multer = require('multer');
 const router = require('express').Router();
+
+// Multer
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, './uploads');
+      },
+    filename: function (req, file, cb) {
+        cb(null, file.originalname);
+    }
+});
+
+
+const upload = multer({storage: storage}).single('image');
+
+
+
 
 // CREATE PRODUCT
 router.post("/", verifyTokenAdmin, async (req, res) => {
-    const newProduct = new Product(req.body);
+    // add new product with image
+    upload(req, res, async (err) => {
+        if (err) {
+            return res.status(500).json(err);
+        }
+            const newProduct = new Product({
+            title: req.body.title,
+            image: req.file.path,
+            desc: req.body.desc,
+            categories: req.body.categories,
+            size: req.body.size,
+            color: req.body.color,
+            price: req.body.price,
+        });
+        try {
+            const savedProduct = await newProduct.save();
+            res.status(200).json(savedProduct);
+        } catch (err) {
+            res.status(500).json(err);
+        }
+    });
+});
 
-    try {
-        const savedProduct = await newProduct.save();
-        res.status(200).json(savedProduct);
-    } catch (err) {
-        res.status(500).json(err);
-    }
-}
-);
+
+    //     const newProduct = new Product({
+    //         title: req.body.title,
+    //         image: req.file.path,
+    //         desc: req.body.desc,
+    //         categories: req.body.categories,
+    //         size: req.body.size,
+    //         color: req.body.color,
+    //         price: req.body.price,
+    //     });
+    //     try {
+    //         const savedProduct = await newProduct.save();
+    //         res.status(200).json(savedProduct);
+    //     } catch (err) {
+    //         res.status(500).json(err);
+    //     }
+    // }
+
+
+
+// );
 
 // UPDATE PRODUCT
 router.put("/:id", verifyTokenAdmin, async (req, res) => {
+
     try {
         const updatedProduct = await Product.findByIdAndUpdate(
             req.params.id,
